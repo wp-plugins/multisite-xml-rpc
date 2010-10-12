@@ -18,7 +18,7 @@ function check_arguments($args) {
 	$wp_xmlrpc_server->escape($args);
 
 	if ( !$wp_xmlrpc_server->login($args[0], $args[1]) ) {
-		return $wp_xmlrpc_server->error;
+		return new IXR_Error(401, $wp_xmlrpc_server->error);
 	}
 
 	return $args[2];
@@ -73,12 +73,12 @@ function msxmlrpc_create_blog($args) {
 			);
 
 			if ( is_wp_error($error) ) {
-				return $error->get_error_message();
+				return new IXR_Error(500, $error->get_error_message());
 			}
 
 			$user_id = wpmu_create_user(
 				$parameters['path'],
-				generate_random_password(),
+				wp_generate_password(),
 				$parameters['user_id']
 			);
 		}
@@ -87,7 +87,7 @@ function msxmlrpc_create_blog($args) {
 	}
 
 	if ( get_blog_id($parameters['domain'], $parameters['path']) !== false ) {
-		return __("Site already exists.");
+		return new IXR_Error(500, __("Site already exists."));
 	}
 
 	if ( !isset($parameters['meta']) )    $parameters['meta']    = "";
@@ -118,7 +118,11 @@ function msxmlrpc_get_blog_id($args) {
 		return $parameters;
 	}
 
-	return get_blog_id($parameters['domain'], $parameters['path']);
+	if ( ($blog_id = get_blog_id($parameters['domain'], $parameters['path'])) !== false ) {
+		return $blog_id;
+	} else {
+		return new IXR_Error(404, __("No sites found."));
+	}
 }
 
 /**
